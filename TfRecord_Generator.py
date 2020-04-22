@@ -1,19 +1,20 @@
+# compatible with future pyhton versions
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-import sys
-import time
+import os                                                                       # os commands
+import sys                                                                      # infos of the python interpret
+import time                                                                     # time
 
-import cv2
+import cv2                                                                      # solve computer vision problems
 
 import numpy as np
 import tensorflow as tf
 
-_IMG_X = 303
-_IMG_Y = 303
-_IMG_Z = 3
+_IMG_X = 303                                                                    # x value from image
+_IMG_Y = 303                                                                    # y value from image
+_IMG_Z = 3                                                                      # z value from image
 
 def int64_feature(values):
   if not isinstance(values, (tuple, list)):
@@ -35,8 +36,8 @@ def image_to_tfexample(img,x,y,z):
       'img': bytes_feature(img),
       'x': int64_feature(x),
       'y': int64_feature(y),
-      'z': int64_feature(z)}))
-
+      'z': int64_feature(z)
+  }))
 
 def _get_output_filename(dataset_dir, split_name):
   return '%s/record_%s.tfrecord' % (dataset_dir, split_name)
