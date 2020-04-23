@@ -1,6 +1,6 @@
 import tensorflow as tf
 import os
-#import cv2
+import IPython.display as display
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.image as mpimg
@@ -62,31 +62,8 @@ class CNN():                                                        # Model
         # Read TfRecord
         print("in CNN getInput()")
 
-        filenames = ["C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord"]
-        dataset = tf.data.TFRecordDataset(filenames=filenames)
-
-        dataset = dataset.map(CNN.parse(self))
-
-        dataset = dataset.batch(batch_size=32)
-
-        dataset = dataset.repeat(1)
-
-        iterater = dataset.make_one_shot_iterator()
-
-        images_batch = iterater.get_next()
-
-        x = {
-            'img' : images_batch
-        }
-
-        imgPlt = mpimg.imread(x[0])
-        print(imgPlt)
-        return
-
-    def parse(self):
-        print("in CNN parse()")
-
-        filenames = ["C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord"]
+        filename = 'C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\128px-Felis_catus-cat_on_snow.jpg' #'128px-Felis_catus-cat_on_snow.jpg',
+        dataset = tf.data.TFRecordDataset("C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord")
 
         features = {
             'img': tf.io.FixedLenFeature([], tf.string),
@@ -95,19 +72,95 @@ class CNN():                                                        # Model
             'z': tf.io.FixedLenFeature([], tf.int64),
         }
 
-        fq = tf.train.string_input_producer(tf.convert_to_tensor(filenames), num_epochs=1)  # edit the string which comes out (make from a python object a tensor object))
-        reader = tf.TFRecordReader()  # define tf reader
-        _, v = reader.read(fq)  # read fq and set iist to _, v |  A scalar string Tensor, a single serialized Example.
+        def _parse_image_function(example_proto):
+            # Parse the input tf.Example proto using the dictionary above.
+            return tf.io.parse_single_example(example_proto, features)
 
-        parsed_example = tf.parse_single_example(v,features)  # prase a single example with( scalar string tensor serialized example, a dict mapping feature key to fixed len feature values)
+        image_dataset = dataset.map(_parse_image_function)
 
-        imageRaw = parsed_example["img"]
+        for image_features in image_dataset:
+            image_raw = image_features['img'].numpy()
+            display.display(display.Image(data=image_raw))
 
-        image = tf.image.decode_raw(imageRaw, tf.unit8)
+# zweiter versuch error: unable to read file
+#         list_ds = tf.data.Dataset.list_files(str("C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord"))
+#         print("list_ds: ", list_ds)
+#         file_path = next(iter(list_ds))
+#         print("file path:" + file_path)
+#         image = CNN.parse(file_path)
+#
+#         def show(image):
+#             plt.figure()
+#             plt.imshow(image)
+#             plt.axis('off')
+#         show(image)
 
-        image = tf.cast(image, tf.float32)
+# erster versuch
+        # dataset = tf.data.TFRecordDataset(filenames=filenames)
+        # dataset = dataset.map(CNN.parse(filenames))
+        #
+        # dataset = dataset.batch(batch_size=32)
+        #
+        # dataset = dataset.repeat(1)
+        #
+        # iterater = dataset.make_one_shot_iterator()
+        #
+        # images_batch = iterater.get_next()
+        #
+        # x = {
+        #     'img' : images_batch
+        # }
+        #
+        # imgPlt = mpimg.imread(x[0])
+        # print(imgPlt)
+        # return
 
-        return image
+#    def parse(filenames):
+#        pass
+        # Reads an image from a file, decodes
+        #it into a dense tensor
+
+
+
+
+# zweiter versuch error: unable to read file
+        # parts = tf.strings.split(filenames, os.sep)
+        # label = parts[-2]
+        #
+        #
+        # image = tf.io.read_file(filenames)
+        # # bytes
+        # image = tf.image.decode_image(image, dtype=tf.dtypes.uint8)
+        # image = tf.image.decode_image(image, dtype=tf.dtypes.uint8)
+        # image = tf.image.convert_image_dtype(image, tf.float32)
+        # return image
+
+
+# erster Versuch error: string_input_produce gibt es nicht mehr
+        # print("in CNN parse()")
+        #
+        # filenames = ["C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord"]
+        #
+        # features = {
+        #     'img': tf.io.FixedLenFeature([], tf.string),
+        #     'x': tf.io.FixedLenFeature([], tf.int64),
+        #     'y': tf.io.FixedLenFeature([], tf.int64),
+        #     'z': tf.io.FixedLenFeature([], tf.int64),
+        # }
+        #
+        # fq = tf.train.string_input_producer(tf.convert_to_tensor(filenames), num_epochs=1)  # edit the string which comes out (make from a python object a tensor object))
+        # reader = tf.TFRecordReader()  # define tf reader
+        # _, v = reader.read(fq)  # read fq and set iist to _, v |  A scalar string Tensor, a single serialized Example.
+        #
+        # parsed_example = tf.parse_single_example(v,features)  # prase a single example with( scalar string tensor serialized example, a dict mapping feature key to fixed len feature values)
+        #
+        # imageRaw = parsed_example["img"]
+        #
+        # image = tf.image.decode_raw(imageRaw, tf.unit8)
+        #
+        # image = tf.cast(image, tf.float32)
+        #
+        # return image
 
 
     def inference(self, img):

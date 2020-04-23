@@ -7,7 +7,7 @@ import os                                                                       
 import sys                                                                      # infos of the python interpret
 import time                                                                     # time
 
-import cv2                                                                      # solve computer vision problems
+import cv2                                                                    # solve computer vision problems
 
 import numpy as np
 import tensorflow as tf
