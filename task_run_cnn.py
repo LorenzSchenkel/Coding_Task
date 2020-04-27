@@ -109,6 +109,7 @@ class CNN():                                                        # Model
         #     pad = 'VALID'
         #     w_shape = [k_w, k_h, 3, out]
 
+        #
         blur = cv2.GaussianBlur(img, (5, 5), 0)
 
         plt.subplot(121), plt.imshow(img), plt.title('Original')
