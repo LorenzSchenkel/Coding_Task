@@ -1,11 +1,9 @@
 import tensorflow as tf
 import os
-from IPython.display import Image
-import IPython.display as display
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
-import matplotlib.image as mpimg
+
 
 
 
@@ -16,27 +14,31 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '-1'
 
 # functin with ignoring the param
 def main(_):
-    save_path = ''
-    model = CNN()                                                   # declare model with cnn()
+    save_path = 'C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task'
+    model = CNN()
 
-    x = model.getInput()                                            # get IMG, open tf record
-    y = model.inference(x)                                          # give IMG, apply gusian filter
+    # get IMG as numpy array, open tf record
+    x = model.getInput()
 
-    saver = tf.train.Saver()                                        # save the model! so you dont have to train it every code run
+    # give numpy array homer, apply gaussian filter
+    y = model.inference(x)
 
-    global_init = tf.global_variables_initializer()                 # globale initialisierung
-    local_init = tf.local_variables_initializer()                   # local initialisierung
+    # saver = tf.train.Saver()                                        # save the model! so you dont have to train it every code run
 
-    with tf.Session() as sess:                                      # ts.Session is sees shortcut and safe tf variables until you close the session
-        sess.run(global_init)                                       # evaluealte the global variable
-        sess.run(local_init)                                        # evaluate the local variable
+    # global_init = tf.global_variables_initializer()                 # globale initialisierung
+    # local_init = tf.local_variables_initializer()                   # local initialisierung
 
-        coord = tf.train.Coordinator()                              # coordination for threads (multitreading)
-        threads = tf.train.start_queue_runners(coord=coord)         # start threads and give a list with threads back
-        tf.train.start_queue_runners(sess=sess)                     # start threads and give a list with threads back
+    #with tf.Session() as sess:                                      # ts.Session is sees shortcut and safe tf variables until you close the session
+        # sess.run(global_init)                                       # evaluealte the global variable
+        # sess.run(local_init)                                        # evaluate the local variable
 
-        for i in range(model.N_SAMPLES):                            # model.N_Samples = 3
-            x_val,y_val = sess.run([x,y])
+        # coord = tf.train.Coordinator()                              # coordination for threads (multitreading)
+        # threads = tf.train.start_queue_runners(coord=coord)         # start threads and give a list with threads back
+        # tf.train.start_queue_runners(sess=sess)                     # start threads and give a list with threads back
+
+    for i in range(model.N_SAMPLES):                            # model.N_Samples = 3
+        #x_val,y_val = sess.run([x,y])
+        print("test")
 
             #TODO:Task 3:
             # - Apply Gausian filter to image of Homer
@@ -44,17 +46,22 @@ def main(_):
             # - Push snapshot and image to GIT
 
         # saver
-        tf.train.save(sess, 'my_test_model')                        # save the training from ki
+        #tf.train.save(sess, 'my_test_model')                        # save the training from ki
 
-        coord.request_stop()                                        # stop threads
-        coord.join(threads)                                         # wait for the threads to terminate
-        print('done')
+        # coord.request_stop()                                        # stop threads
+        # coord.join(threads)                                         # wait for the threads to terminate
+        # print('done')
 
 class CNN():                                                        # Model
     def __init__(self):                                             # initialise vaiables
         self.N_SAMPLES = 3
-        self.DATASET = ...
+        # TFRecodDataset(filename=tf.string, tf.data.Dataset)
+        self.DATASET = tf.data.TFRecordDataset("C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord")
         self.IN_SHAPE = ...
+
+        array = np.empty((303, 303), dtype=float, order='C')
+        self.blurArray = cv2.GaussianBlur(array, (5, 5), 0)
+
         pass
 
 
@@ -74,33 +81,44 @@ class CNN():                                                        # Model
             'z': tf.io.FixedLenFeature([], tf.int64),
         }
 
+
         # why example
         def _parse_image_function(example):
-            #tf.io.parse_single_example(idk; features = dict with feature keys) -> return: get a dict with our data in raw bytes
+
+            #tf.io.parse_single_example(idk, features = dict with feature keys) -> return: get a dict with our data in raw bytes
             return tf.io.parse_single_example(example, features)
 
+
         # transform the whole dataset and return the new one
-        image_dataset = dataset.map(_parse_image_function)
+        image_dataset = self.DATASET.map(_parse_image_function)
+
+        i = 0
 
         # illiterate about the dataset (there are 3 images)
         for image_features in image_dataset:
 
-            #
+            i += 1
+
+            #TODO: was macht NUMPY?
             image_raw = image_features['img'].numpy()
 
-            # numpy array
+            # decode the raw bytes to numbers
             decoded = np.frombuffer(image_raw, dtype=np.uint8)
 
-            # width: 303 height: 303 , 3 color channel
+            # decode.reshape(width: 303 height: 303 , 3 color channel) -> return: numpy Array
             decoded = decoded.reshape((303, 303, 3))
 
-            # inference(img: numpy Array) -> return nothing
-            CNN.inference(self, img=decoded)
+            if i == 3:
+                return decoded
+        return
+
+            # inference(img: numpy Array) -> should return tensor
+            #CNN.inference(self, img=decoded)
 
 
     def inference(self, img):
-        print("in inference()")
 
+        # add a prefix: "conv1/"
         # with tf.name_scope('conv1'):
         #     out = 1
         #     k_w = 5
@@ -109,17 +127,24 @@ class CNN():                                                        # Model
         #     pad = 'VALID'
         #     w_shape = [k_w, k_h, 3, out]
 
-        #
+
+        # cv2.GaussianBlur(src="input image nupmy array", ksize(gausian kernle size)= [height width], sigmaX(kernle standart deviation (Abweichung) X-axis, sigmaY, borderType) -> return: change the input Picture
         blur = cv2.GaussianBlur(img, (5, 5), 0)
 
-        plt.subplot(121), plt.imshow(img), plt.title('Original')
+        plt.subplot(121), plt.imshow(img), plt.title('without filter')
         plt.xticks([]), plt.yticks([])
-        plt.subplot(122), plt.imshow(blur), plt.title('GaussianBlur')
+        plt.subplot(122), plt.imshow(blur), plt.title('with filter')
         plt.xticks([]), plt.yticks([])
         plt.show()
+
         return
 
+
 #if __name__ == '__main__':
-    #tf.app.run()
-testGetInput = CNN()
-testGetInput.getInput()
+   # tf.app.run()
+
+# testGetInput = CNN()
+# testGetInput.getInput()
+
+main(1)
+
