@@ -82,7 +82,7 @@ class CNN():  # Model
             image = tf.decode_raw(image_raw, tf.uint8)
 
             # only float if we want a tensor
-            # image = tf.cast(image, tf.float32)
+            image = tf.cast(image, tf.float32)
 
             return image
 
@@ -110,7 +110,8 @@ class CNN():  # Model
             # print("oneRawBytesArray", oneRawBytesArray)
             # print("tensor", rawBytesArray)
 
-            #oneRawBytesArray = oneRawBytesArray.reshape((303, 303, 3))
+            oneRawBytesArray = oneRawBytesArray.reshape((303, 303, 3))
+            oneImageTensor = tf.constant(oneRawBytesArray, dtype=tf.float32)
             # oneRawBytesArray = np.reshape(a=oneRawBytesArray, newshape=[303, 303, 3])
             # print("oneRawBytesArray_reshape", oneRawBytesArray)
 
@@ -122,10 +123,10 @@ class CNN():  # Model
             # plt.xticks([]), plt.yticks([])
             # plt.show()
 
-            CNN.inference(self, tensor, oneRawBytesArray, rawBytesArray)
+            CNN.inference(self, tensor, oneRawBytesArray, rawBytesArray, oneImageTensor)
         return
 
-    def inference(self, tensor, oneRawBytesArray, rawBytesArray):
+    def inference(self, tensor, oneRawBytesArray, rawBytesArray, oneImageTensor):
         with tf.name_scope('conv1'):
             input = 1
             output = 1
@@ -136,37 +137,37 @@ class CNN():  # Model
             w_shape = [k_w, k_h, 3, output]
             num_channels = 3
             img_size = 303
-            img_size_flat = 275427  # how many elements are in one picture array
+            img_size_flat = 303 * 303 * 3  # how many elements are in one picture array
 
             print(tensor)
 
-            arr = np.array([(1, 4, 7, 4, 1), (4, 16, 26, 16, 4), (7, 26, 41, 26, 7), (4, 16, 26, 16, 4), (1, 4, 7, 4, 1)])
-            gausian = tf.convert_to_tensor(arr)
-            #guasian = tf.cast(gausian, tf.float32)
 
-
-            print("gausian", gausian)
-
-
-            # input
-            print(img_size_flat)
+            # input should have like the data for filtering
             x = tf.compat.v1.placeholder(tf.float32, shape=[None, img_size_flat], name='x')
-            print("x", x)
-            x_image = tf.reshape(x, [3, img_size, img_size, num_channels], [4]) # eigentlich minus 1 statt 3 | expected string or bytes like object -> x have to be a tensor?
 
-            # weights with random numbers i am not sure if i want this
-            weights = tf.Variable(tf.truncated_normal(w_shape, stddev=0.05))
-
-            #filter
-            # filter = tf.constant(w_shape)
-            # filter = tf.cast(filter, tf.float32)
-            # print("filter", filter)
+            x_image = tf.reshape(oneImageTensor, [-1, img_size, img_size, num_channels])
+            print("oneImageTensor", oneImageTensor)
 
 
-            guasianFiltertPicture = tf.nn.conv2d(input=x_image, filter=weights, padding=pad, strides=s)
-            print(guasianFiltertPicture)
+            # set filter variable
+            #filter = tf.Variable([[1, 4, 7, 4, 1], [4, 16, 26, 16, 4], [7, 26, 41, 26, 7], [4, 16, 26, 16, 4], [1, 4, 7, 4, 1]])
+            filter = tf.random.truncated_normal(w_shape, stddev=0.1)
+            filter = tf.cast(filter, dtype=tf.float32)
+            print("filter", filter)
+            print("tf.Session().run(filter)", tf.Session().run(filter))
 
+            layer = tf.nn.conv2d(input=x_image, filter=filter, strides=s, padding=pad)
+            print("layer", layer)
 
+            print(type(tf.Session().run(layer)))
+            print(tf.Session().run(layer))
+            tf.Session().run(layer)
+
+            plt.subplot(121), plt.imshow(oneRawBytesArray), plt.title('without filter')
+            plt.xticks([]), plt.yticks([])
+            plt.subplot(122), plt.imshow(layer), plt.title('with filter')
+            plt.xticks([]), plt.yticks([])
+            plt.show()
 
             # TODO: Task 2
             # - Apply a 5x5 Gausian filter to the input
