@@ -29,8 +29,8 @@ def main(_):
     global_init = tf.global_variables_initializer()  # globale initialisierung
     local_init = tf.local_variables_initializer()  # local initialisierung
 
-    with tf.Session() as sess:  # ts.Session is sees shortcut and safe tf variables until you close the session
-        sess.run(global_init)  # evaluealte the global variable
+    with tf.compat.v1.Session() as sess:  # ts.Session is sees shortcut and safe tf variables until you close the session
+        sess.run(global_init)  # evaluate the global variable
         sess.run(local_init)  # evaluate the local variable
 
         coord = tf.train.Coordinator()  # coordination for threads (multitreading)
@@ -64,11 +64,8 @@ class CNN():  # Model
 
     # read indiviual images
     def getInput(self):
-        filename = "C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord"
-        dataset = tf.data.TFRecordDataset(
-            "C:\\Users\\Q447230\\Coden\\gitRepositorys\\Coding_Task\\record_test.tfrecord")
-
         def _parse_image_function(serialized):
+            # dict with data we expect in the tf.record file
             features = {
                 'img': tf.io.FixedLenFeature([], tf.string),
                 'x': tf.io.FixedLenFeature([], tf.int64),
@@ -76,59 +73,56 @@ class CNN():  # Model
                 'z': tf.io.FixedLenFeature([], tf.int64),
             }
 
-            parsed_example = tf.parse_single_example(serialized=serialized, features=features)
+            # where does serialized comes from
+            # parse the serialized data to get a dict with our data
+            parsed_example = tf.io.parse_single_example(serialized=serialized, features=features)
 
+            # what are raw bytes
+            # get the image as raw Bytes
             image_raw = parsed_example["img"]
+
+            # Decode the raw bytes so it becomes a tensor with type
             image = tf.decode_raw(image_raw, tf.uint8)
 
-            # only float if we want a tensor
-            image = tf.cast(image, tf.float32)
+            # only float if i want a tensor
+            # image = tf.cast(image, tf.float32)
 
             return image
 
-        # dataset = self.DATASET.map(lambda x: tf.py_function(process_path, [x], [tf.string]))
+        # applies _parse_image_functionc to each element of this data set
         dataset = self.DATASET.map(_parse_image_function)
-        # print("dataset", dataset)
 
-        # dataset = dataset.repeat(1)
-
+        # set the dimensions
         dataset = dataset.batch(3)
-        # print("dataset_batch", dataset)
 
+        # go through the data set
         iterator = dataset.make_one_shot_iterator()
-        # print("iterator", iterator)
 
+        # get the next element in the dataset
         tensor = iterator.get_next()
-        # print("tensor", tensor)
-
-        # x = {"img": images_batch}
 
         rawBytesArray = tensor.eval(session=tf.compat.v1.Session())
-        # print("rawBytesArray", rawBytesArray)
 
-        for oneRawBytesArray in rawBytesArray:
-            # print("oneRawBytesArray", oneRawBytesArray)
-            # print("tensor", rawBytesArray)
+        # set new tensor variable with rawBytes and type tf.float32
+        allImageTensor = tf.constant(rawBytesArray, tf.float32)
 
-            oneRawBytesArray = oneRawBytesArray.reshape((303, 303, 3))
-            oneImageTensor = tf.constant(oneRawBytesArray, dtype=tf.float32)
-            # oneRawBytesArray = np.reshape(a=oneRawBytesArray, newshape=[303, 303, 3])
-            # print("oneRawBytesArray_reshape", oneRawBytesArray)
 
-            # blur = cv2.GaussianBlur(oneRawBytesArray, (5, 5), 0)
-            #
-            # plt.subplot(121), plt.imshow(oneRawBytesArray), plt.title('without filter')
-            # plt.xticks([]), plt.yticks([])
-            # plt.subplot(122), plt.imshow(blur), plt.title('with filter')
-            # plt.xticks([]), plt.yticks([])
-            # plt.show()
+        CNN.inference(self, allImageTensor)
 
-            CNN.inference(self, tensor, oneRawBytesArray, rawBytesArray, oneImageTensor)
+        # for oneRawBytesArray in rawBytesArray:
+        #
+        #     oneRawBytesArray = oneRawBytesArray.reshape((303, 303, 3))
+        #     oneImageTensor = tf.constant(oneRawBytesArray, dtype=tf.float32)
+        #
+        #     # Visiualisation + blur
+        #     # blur = cv2.GaussianBlur(oneRawBytesArray, (5, 5), 0)
+        #     #
+        #     # CNN.visualisation(self, data1=oneRawBytesArray, data2=blur)
+
         return
 
-    def inference(self, tensor, oneRawBytesArray, rawBytesArray, oneImageTensor):
+    def inference(self, allImageTensor):
         with tf.name_scope('conv1'):
-            input = 1
             output = 1
             k_w = 5
             k_h = 5
@@ -137,41 +131,53 @@ class CNN():  # Model
             w_shape = [k_w, k_h, 3, output]
             num_channels = 3
             img_size = 303
-            img_size_flat = 303 * 303 * 3  # how many elements are in one picture array
 
-            print(tensor)
+            x_image = tf.reshape(allImageTensor, [-1, img_size, img_size, num_channels])
 
+            # set filter variable and the dimension (5, 5, 3, 1) like the input data
+            filterExamnple = [[1, 4, 7, 4, 1], [4, 16, 26, 16, 4], [7, 26, 41, 26, 7], [4, 16, 26, 16, 4],
+                              [1, 4, 7, 4, 1]]
+            filter = np.repeat(filterExamnple, 3)
+            filter = np.reshape(filter, w_shape)
+            filter = tf.compat.v1.convert_to_tensor(filter, dtype=tf.float32)
 
-            # input should have like the data for filtering
-            x = tf.compat.v1.placeholder(tf.float32, shape=[None, img_size_flat], name='x')
-
-            x_image = tf.reshape(oneImageTensor, [-1, img_size, img_size, num_channels])
-            print("oneImageTensor", oneImageTensor)
-
-
-            # set filter variable
-            #filter = tf.Variable([[1, 4, 7, 4, 1], [4, 16, 26, 16, 4], [7, 26, 41, 26, 7], [4, 16, 26, 16, 4], [1, 4, 7, 4, 1]])
-            filter = tf.random.truncated_normal(w_shape, stddev=0.1)
-            filter = tf.cast(filter, dtype=tf.float32)
-            print("filter", filter)
-            print("tf.Session().run(filter)", tf.Session().run(filter))
-
+            # calculate the convolutional layer and the pictures
             layer = tf.nn.conv2d(input=x_image, filter=filter, strides=s, padding=pad)
-            print("layer", layer)
 
-            print(type(tf.Session().run(layer)))
-            print(tf.Session().run(layer))
-            tf.Session().run(layer)
+            # set negative values to zero
+            layer = tf.nn.relu(layer)
 
-            plt.subplot(121), plt.imshow(oneRawBytesArray), plt.title('without filter')
-            plt.xticks([]), plt.yticks([])
-            plt.subplot(122), plt.imshow(layer), plt.title('with filter')
-            plt.xticks([]), plt.yticks([])
-            plt.show()
+            # Dimensions with size 1 will deleted
+            layer = tf.squeeze(layer)
 
-            # TODO: Task 2
-            # - Apply a 5x5 Gausian filter to the input
-            # - with graph and session
+            print(
+                "___________________________________________________normal_______________________________________\n",
+                tf.compat.v1.Session().run(layer),
+                "\n______________________________________________________________________________________________\n")
+
+            # run the session and calculate everything what is in the graph
+            test = tf.compat.v1.Session().run(layer)
+
+            # visualize the pictures
+            visualisation(self, data1=test)
+
+            intLayer = layer
+            # layer1 = tf.cast(layer1, tf.int8)
+            intLayer = tf.divide(intLayer, 273)
+            test1 = tf.compat.v1.Session().run(intLayer)
+            print(
+                "_____________________________________________________273_________________________________________\n",
+                tf.compat.v1.Session().run(intLayer),
+                "\n_______________________________________________________________________________________________\n")
+            # visualisation(self, data1=rawBytesArray, data2=test1)
+
+
+def visualisation(self, data1):
+    f, axarr = plt.subplots(2, 2)
+    axarr[0, 0].imshow(data1[0])
+    axarr[0, 1].imshow(data1[1])
+    axarr[1, 0].imshow(data1[2])
+    plt.show()
 
 
 # if __name__ == '__main__':
